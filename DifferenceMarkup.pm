@@ -121,7 +121,7 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff);
 
-$VERSION = '0.01';
+$VERSION = '0.02';
 
 # interface (free functions)
 
