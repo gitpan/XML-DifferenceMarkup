@@ -1,0 +1,33 @@
+Revision history for Perl extension XML::DifferenceMarkup.
+
+0.01  Mon Sep  2 19:39:00 2002
+	- original version; created by h2xs 1.21
+
+0.02  Wed Sep  4 18:04:19 2002
+	- added dependencies to Makefile.PL
+
+0.03  Sun Sep  8 14:51:44 IST 2002
+	- fixed pruning of deleted nodes
+	- replaced createElement by createElementNS
+	- more tests
+
+0.04  Wed Sep 11 20:21:06 IST 2002
+	- fixed pruning of deleted nodes (another case)
+	- using toString for shallow comparison
+	- added namespace prefix collision handling
+
+0.06  Sun Sep 29 09:44:30 IST 2002
+	- fixed merging of deleted nodes (showing up with
+Algorithm::Diff 1.15)
+	- using traverse_balanced instead of traverse_sequences
+	- fixed merge (probably not quite)
+
+0.07  Sun Oct 13 18:44:16 IST 2002
+	- refactored
+	- better handling of invalid diffs
+	- more tests
+
+0.09  Wed Jun 25 19:10:02 CEST 2003
+	- fix for crash on namespaces without local name
+	- more tests
+
