@@ -81,6 +81,62 @@ B_DIFFERENT_ATTRIBUTES
 DIFF_DIFFERENT_ATTRIBUTES
 		 },
 		 {
+		  name => 'unordered attributes',
+		  a => <<A_UNORDERED_ATTRIBUTES,
+<?xml version="1.0"?>
+<top a="1" c="3" b="2"/>
+A_UNORDERED_ATTRIBUTES
+		  b => <<B_UNORDERED_ATTRIBUTES,
+<?xml version="1.0"?>
+<top b="2" a="1" c="3"/>
+B_UNORDERED_ATTRIBUTES
+		  diff => <<DIFF_UNORDERED_ATTRIBUTES
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <dm:delete>
+    <top a="1" c="3" b="2"/>
+  </dm:delete>
+  <dm:insert>
+    <top b="2" a="1" c="3"/>
+  </dm:insert>
+</dm:diff>
+DIFF_UNORDERED_ATTRIBUTES
+		 },
+		 {
+		  name => 'whitespace between attributes',
+		  a => <<A_WHITESPACE_BETWEEN_ATTRIBUTES,
+<?xml version="1.0"?>
+<node a="a"  b="b"/>
+A_WHITESPACE_BETWEEN_ATTRIBUTES
+		  b => <<B_WHITESPACE_BETWEEN_ATTRIBUTES,
+<?xml version="1.0"?>
+<node a="a" b="b"/>
+B_WHITESPACE_BETWEEN_ATTRIBUTES
+		  diff => <<DIFF_WHITESPACE_BETWEEN_ATTRIBUTES
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <dm:copy count="1"/>
+</dm:diff>
+DIFF_WHITESPACE_BETWEEN_ATTRIBUTES
+		 },
+		 {
+		  name => 'attribute quotes',
+		  a => <<A_ATTRIBUTE_QUOTES,
+<?xml version="1.0"?>
+<node a="a" b='b'/>
+A_ATTRIBUTE_QUOTES
+		  b => <<B_ATTRIBUTE_QUOTES,
+<?xml version="1.0"?>
+<node a='a' b="b"/>
+B_ATTRIBUTE_QUOTES
+		  diff => <<DIFF_ATTRIBUTE_QUOTES
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <dm:copy count="1"/>
+</dm:diff>
+DIFF_ATTRIBUTE_QUOTES
+		 },
+		 {
 		  name => 'text node',
 		  a => <<A_TEXT_NODE,
 <top>
@@ -133,25 +189,6 @@ B_COMMENT_NODE
 </dm:diff>
 DIFF_COMMENT_NODE
                  },
-
-# 8Sep2002: TODO: are A & B docs the same?
-#  		 {
-#  		  name => 'whitespace in attribute value',
-#  		  a => <<A_WHITESPACE_IN_ATTRIBUTE_VALUE,
-#  <?xml version="1.0"?>
-#  <node attr="a b  c"/>
-#  A_WHITESPACE_IN_ATTRIBUTE_VALUE
-#  		  b => <<B_WHITESPACE_IN_ATTRIBUTE_VALUE,
-#  <?xml version="1.0"?>
-#  <node attr="a  b c"/>
-#  B_WHITESPACE_IN_ATTRIBUTE_VALUE
-#  		  diff => <<DIFF_WHITESPACE_IN_ATTRIBUTE_VALUE
-#  <?xml version="1.0"?>
-#  <dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-#    <dm:copy count="1"/>
-#  </dm:diff>
-#  DIFF_WHITESPACE_IN_ATTRIBUTE_VALUE
-#  		 },
 		 {
 		  name => 'pruned delete',
 		  a => <<A_PRUNED_DELETE,
@@ -201,6 +238,52 @@ B_PRUNED_DELETE
   </a>
 </dm:diff>
 DIFF_PRUNED_DELETE
+		 },
+		 {
+		  name => 'delete before copy',
+		  a => <<A_DELETE_BEFORE_COPY,
+<?xml version="1.0"?>
+<delta>
+<uri value="first">
+<word value="1."/>
+</uri>
+<uri value="second">
+<word value="2."/>
+</uri>
+<uri value="third">
+<word value="3."/>
+</uri>
+<uri value="fourth">
+<word value="4."/>
+</uri>
+</delta>
+A_DELETE_BEFORE_COPY
+		  b => <<B_DELETE_BEFORE_COPY,
+<?xml version="1.0"?>
+<delta>
+<uri value="first">
+<word value="1."/>
+</uri>
+<uri value="second">
+<word value="2."/>
+</uri>
+<uri value="fourth">
+<word value="4."/>
+</uri>
+</delta>
+B_DELETE_BEFORE_COPY
+		  diff => <<DIFF_DELETE_BEFORE_COPY,
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <delta>
+    <dm:copy count="2"/>
+    <dm:delete>
+      <uri value="third"/>
+    </dm:delete>
+    <dm:copy count="1"/>
+  </delta>
+</dm:diff>
+DIFF_DELETE_BEFORE_COPY
 		 },
 		 {
 		  name => 'reorder',

@@ -28,7 +28,8 @@ basically the diff is a subset of the input trees, annotated with
 instruction element nodes specifying how to convert the source tree to
 the target by inserting and deleting nodes. To prevent name colisions
 with input trees, all added elements are in a namespace
-C<http://www.locus.cz/XML/DifferenceMarkup> .
+C<http://www.locus.cz/XML/DifferenceMarkup> (the diff will fail on
+input trees which already use that namespace).
 
 The top-level node of the diff is always <diff/> (or rather <dm:diff
 xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup"> ... </dm:diff> -
@@ -63,10 +64,10 @@ Note that <delete/> contains just one level of nested nodes - their
 subtrees are not included in the diff (but the element nodes which are
 included always come with all their attributes).
 
-Instruction nodes are never nested; all nodes above them (except the
-top-level <diff/>) come from the input trees. A node from the input
-tree is included in the output diff to provide context for instruction
-nodes when all of the following is true:
+Instruction nodes are never nested; all nodes above an instruction
+node (except the top-level <diff/>) come from the input trees. A node
+from the input tree is included in the output diff to provide context
+for instruction nodes when all of the following is true:
 
 =over
 
@@ -87,11 +88,11 @@ contain at least one instruction node.
 
 =over
 
+=item * the diff does not handle changes in attribute ordering
+
 =item * the diff format has no merge
 
-=item * namespace prefix collision is not handled
-
-=item * information outside the top-level node is not processed
+=item * information outside the document element is not processed
 
 =back
 
@@ -124,44 +125,66 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff);
 
-$VERSION = '0.03';
+$VERSION = '0.04';
 
-# interface (free functions)
+our $nsurl ='http://www.locus.cz/XML/DifferenceMarkup';
+
+# free functions
+
+sub _get_unique_prefix {
+    my ($m, $n) = @_;
+
+    # warn "_get_unique_prefix\n";
+
+    my $prefix = 'dm';
+
+    my $col = XML::DifferenceMarkup::NamespaceCollector->new(
+        $prefix, $nsurl);
+    my $top = $col->get_unused_number($m, $n);
+
+    if ($top != -1) {
+	$prefix .= $top;
+    }
+
+    # warn "unique prefix: $prefix\n";
+    return $prefix;
+}
 
 sub make_diff {
-    my $dm = XML::DifferenceMarkup->new;
-    return $dm->diff(@_);
-}
-
-# implementation (OO)
-
-sub new {
-    my $class = shift;
-
-    # warn "new\n";
-
-    my $self = { nsurl => 'http://www.locus.cz/XML/DifferenceMarkup',
-		 nsprefix => 'dm' };
-    return bless $self, $class;
-}
-
-sub diff {
-    my ($self, $d1, $d2) = @_;
-
-    # warn "diff\n";
-
-    $self->{dest} = XML::LibXML::Document->createDocument;
-    $self->{growth_point} = $self->{dest}->createElementNS(
-        $self->{nsurl},
-        $self->_get_scoped_name('diff'));
-    $self->{dest}->setDocumentElement($self->{growth_point});
+    my ($d1, $d2) = @_;
 
     my $m = $d1->documentElement();
     my $n = $d2->documentElement();
 
+    my $dm = XML::DifferenceMarkup->new(
+        _get_unique_prefix($m, $n));
+
+    return $dm->diff_nodes($m, $n);
+}
+
+# OO starts here
+
+sub new {
+    my ($class, $nsprefix) = @_;
+
+    # warn "new\n";
+
+    my $self = { nsprefix => $nsprefix };
+    return bless $self, $class;
+}
+
+sub diff_nodes {
+    my ($self, $m, $n) = @_;
+
+    $self->{dest} = XML::LibXML::Document->createDocument;
+    $self->{growth_point} = $self->{dest}->createElementNS(
+        $nsurl,
+        $self->_get_scoped_name('diff'));
+    $self->{dest}->setDocumentElement($self->{growth_point});
+
     if ($m->toString eq $n->toString) {
 	my $copy = $self->{dest}->createElementNS(
-            $self->{nsurl},
+            $nsurl,
             $self->_get_scoped_name('copy'));
 	$self->{growth_point}->appendChild($copy);
 	$copy->setAttribute('count', 1);
@@ -187,37 +210,15 @@ sub _eq_shallow {
 
     # warn "_eq_shallow\n";
 
-    if ($m->nodeName ne $n->nodeName) {
-	return 0;
-    }
+    # 10Sep2002: this isn't really equality as understood by DOM (the
+    # same attributes in different order will be considered
+    # different), but it's the same equality as used in other places
+    # (most importantly traverse_sequences)
 
-    my %attr;
+    my $p = $self->_get_tip($m);
+    my $q = $self->_get_tip($n);
 
-    my @ma = $m->attributes;
-    foreach my $a (@ma) {
-	my $name = $a->nodeName;
-	if (exists($attr{$name})) {
-	    die "internal error: repeated attribute: $name";
-	}
-
-	$attr{$name} = $a->nodeValue;
-    }
-
-    my @na = $n->attributes;
-    foreach my $a (@na) {
-	my $name = $a->nodeName;
-	if (!exists($attr{$name})) {
-	    return 0;
-	}
-
-	if ($attr{$name} ne $a->nodeValue) {
-	    return 0;
-	}
-
-	delete $attr{$name};
-    }
-
-    return scalar(keys(%attr)) == 0;
+    return $p->toString eq $q->toString;
 }
 
 # insert a bottom pair
@@ -227,32 +228,29 @@ sub _replace {
     # warn "_replace\n";
 
     my $del = $self->{dest}->createElementNS(
-        $self->{nsurl},
+        $nsurl,
         $self->_get_scoped_name('delete'));
     $self->{growth_point}->appendChild($del);
 
-    $del->appendChild($self->_get_tip($m));
+    $del->appendChild($self->_import_tip($m));
     $self->_append_insert($n);
 }
 
-# move a node to the destination tree, removing its children in the
+# copy a node to the destination tree, removing its children in the
 # process (note that the result is different than cloneNode(0) - the
 # attributes are kept)
+sub _import_tip {
+    my ($self, $n) = @_;
+
+    my $tip = $self->_get_tip($n);
+    return $self->{dest}->importNode($tip);
+}
+
 sub _get_tip {
     my ($self, $n) = @_;
 
     my $tip = $n->cloneNode(1);
     $self->_remove_children($tip);
-    $self->{dest}->importNode($tip);
-
-    # 8Sep2002: this approach is problematic because it doesn't copy
-    # the namespace of $n
-#      my $tip = $self->{dest}->createElement($n->nodeName);
-#      my @attr = $n->attributes;
-#      foreach (@attr) {
-#  	$tip->setAttribute($_->nodeName, $_->nodeValue);
-#      }
-
     return $tip;
 }
 
@@ -262,7 +260,7 @@ sub _append_insert {
     # warn "_append_insert(" . $self . ", " . $n->nodeName . ")\n";
 
     my $ins = $self->{dest}->createElementNS(
-        $self->{nsurl},
+        $nsurl,
         $self->_get_scoped_name('insert'));
     $self->{growth_point}->appendChild($ins);
     $ins->appendChild($self->{dest}->importNode($n));
@@ -274,10 +272,22 @@ sub _append_delete {
     # warn "_append_delete(" . $self . ", " . $n->nodeName . ")\n";
 
     my $del = $self->{dest}->createElementNS(
-        $self->{nsurl},
+        $nsurl,
         $self->_get_scoped_name('delete'));
     $self->{growth_point}->appendChild($del);
     $del->appendChild($self->{dest}->importNode($n));
+}
+
+sub _append_copy {
+    my $self = shift;
+
+    # warn "_append_copy($self)\n";
+
+    my $copy = $self->{dest}->createElementNS(
+        $nsurl,
+        $self->_get_scoped_name('copy'));
+    $self->{growth_point}->appendChild($copy);
+    $copy->setAttribute('count', 1);
 }
 
 sub _descend {
@@ -285,7 +295,7 @@ sub _descend {
 
     # warn "_descend\n";
 
-    my $seq = $self->_get_tip($n);
+    my $seq = $self->_import_tip($n);
 
     $self->{growth_point}->appendChild($seq);
     $self->{growth_point} = $seq;
@@ -348,14 +358,8 @@ sub _diff {
 
     # warn "_diff\n";
 
-    my $d1 = XML::LibXML::Document->createDocument;
-    $d1->setDocumentElement($d1->importNode($m));
-
-    my $d2 = XML::LibXML::Document->createDocument;
-    $d2->setDocumentElement($d2->importNode($n));
-
-    my $dm = XML::DifferenceMarkup->new;
-    my $dom = $dm->diff($d1, $d2);
+    my $dm = XML::DifferenceMarkup->new($self->{nsprefix});
+    my $dom = $dm->diff_nodes($m, $n);
     return $dom->documentElement;
 }
 
@@ -515,17 +519,84 @@ sub _on_match {
 
     my $last = $self->{growth_point}->lastChild;
     my $count;
-    if (!$last || $last->nodeName ne $self->_get_scoped_name('copy')) {
-	$last = $self->{dest}->createElementNS(
-            $self->{nsurl},
-            $self->_get_scoped_name('copy'));
-	$self->{growth_point}->appendChild($last);
-	$count = 1;
+    if (!$last) {
+	$self->_append_copy;
+    } elsif ($last->nodeName ne $self->_get_scoped_name('copy')) {
+	if ($last->nodeName eq $self->_get_scoped_name('delete')) {
+	    $self->_prune($last);
+	}
+	$self->_append_copy;
     } else {
 	$count = 1 + $last->getAttribute('count');
+	$last->setAttribute('count', $count);
+    }
+}
+
+package XML::DifferenceMarkup::NamespaceCollector;
+
+sub new {
+    my ($class, $stem, $nsurl) = @_;
+
+    # keys of the namespaces hashref have the form prefix\nurl
+    my $self = { stem => $stem, nsurl => $nsurl, namespaces => { } };
+
+    return bless $self, $class;
+}
+
+sub get_unused_number {
+    my ($self, $m, $n) = @_;
+
+    $self->_fill($m);
+    $self->_fill($n);
+
+    my $stem = $self->{stem};
+    my $use_max = 0;
+    my $max = 1;
+    foreach my $pair (keys %{$self->{namespaces}}) {
+	unless ($pair =~ /^(.+)\n(.+)$/) {
+	    die "internal error: invalid pair $pair";
+	}
+
+	my ($prefix, $url) = ($1, $2);
+
+	if ($url eq $self->{nsurl}) {
+	    die "input tree contains the reserved namespace " .
+                $self->{nsurl} . "\n";
+	}
+
+	if ($prefix eq $stem) {
+	    $use_max = 1;
+	} elsif ($prefix =~ /^$stem([0-9]+)$/) {
+	    if ($1 > $max) {
+		$max = $1;
+	    }
+	}
     }
 
-    $last->setAttribute('count', $count);
+    return $use_max ? ($max + 1) : -1;
+}
+
+sub _fill {
+    my ($self, $n) = @_;
+
+    foreach ($n->getNamespaces) {
+	unless (defined $_->getData) {
+	    # 11Sep2002: LibXML apparently drops the prefix somewhere
+	    # during cloning - this case really is't worth
+	    # supporting...
+	    die "invalid XML: no namespace declaration for prefix " .
+	        $_->name . "\n";
+	}
+
+	my $pair = $_->name . "\n" . $_->getData;
+	$self->{namespaces}->{$pair} = 1;
+    }
+
+    my $ch = $n->firstChild;
+    while ($ch) {
+	$self->_fill($ch);
+	$ch = $ch->nextSibling;
+    }
 }
 
 1;

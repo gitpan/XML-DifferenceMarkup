@@ -10,3 +10,9 @@ Revision history for Perl extension XML::DifferenceMarkup.
 	- fixed pruning of deleted nodes
 	- replaced createElement by createElementNS
 	- more tests
+
+0.04  Wed Sep 11 20:21:06 IST 2002
+	- fixed pruning of deleted nodes (another case)
+	- using toString for shallow comparison
+	- added namespace prefix collision handling
+
