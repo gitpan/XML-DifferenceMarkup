@@ -30,7 +30,7 @@ input trees which already use that namespace).
 
 The top-level node of the diff is always <diff/> (or rather <dm:diff
 xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup"> ... </dm:diff> -
-this description elides the namespace specification from now on);
+this description omits the namespace specification from now on);
 under it are fragments of the input trees and instruction nodes:
 <insert/>, <delete/> and <copy/>. <copy/> is used in places where the
 input subtrees are the same - in the limit, the diff of 2 identical
@@ -60,7 +60,7 @@ documents which have nothing in common is something like
 Actually, the above is a typical output even for documents which have
 plenty in common - if (for example) the names of top-level elements in
 the two input documents differ, XML::DifferenceMarkup will produce a
-maximal diff, even if their subtrees are exactly the same.
+maximal diff, even when their subtrees are exactly the same.
 
 Note that <delete/> contains just one level of nested nodes - their
 subtrees are not included in the diff (but the element nodes which are
@@ -109,7 +109,7 @@ differ.)
 =head2 Error Handling
 
 Both C<make_diff> and C<merge_diff> throw exceptions on invalid input
-- its own exceptions as well as exceptions thrown by
+- their own exceptions as well as exceptions thrown by
 XML::LibXML. These exceptions can usually (not always, though - it
 I<is> possible to construct an input which will crash the calling
 process) be catched by calling the functions from an eval block.
@@ -152,7 +152,7 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff merge_diff);
 
-$VERSION = '0.06';
+$VERSION = '0.07';
 
 our $NSURL = 'http://www.locus.cz/XML/DifferenceMarkup';
 
@@ -261,7 +261,13 @@ sub _do_merge {
     } elsif ($name eq $self->get_scoped_name('insert')) {
 	$self->_handle_insert($tree);
     } else {
-	# should check that the node isn't in the dm namespace
+	# it can't be an instruction
+	my $prefix = $tree->prefix;
+	if (defined($prefix) &&
+	    $prefix eq $self->{nsprefix}) {
+	    die $self->{die_head} . "unknown instruction $name (this is version " . $XML::DifferenceMarkup::VERSION . " of XML::DifferenceMarkup)\n";
+	}
+
 	$self->_copy_shallow;
 
 	my $ch = $tree->firstChild;
@@ -284,23 +290,29 @@ sub _handle_delete {
 	die $self->{die_head} . "delete node has no children\n";
     }
 
-    my $old = $self->{src_point};
-
     unless ($self->{src_point}) {
 	die $self->{die_head} . "nothing to delete\n";
     }
 
     my $finished = 0;
     while ($ch) {
-	# should check that the deleted node is the same in source &
-	# diff...
+	# check that the deleted node name is the same in source &
+	# diff (it could check the attributes as well, but the time
+	# spent checking probably isn't worth it)
+	unless ($ch->nodeName eq $self->{src_point}->nodeName) {
+	    die $self->{die_head} . $ch->nodeName . " isn't there to be deleted; source has " . $self->{src_point}->nodeName . " instead\n";
+	}
 
 	my $checked_sibling = $self->{src_point}->nextSibling;
 	if ($checked_sibling) {
 	    $self->{src_point} = $checked_sibling;
-	    my $src_point_str = $self->{src_point}->nodeName;
+	    # my $src_point_str = $self->{src_point}->nodeName;
 	    # warn "src_point := $src_point_str";
 	} else {
+	    if ($finished) {
+		die $self->{die_head} . "too many nodes to delete\n";
+	    }
+
 	    $finished = 1;
 	}
 
@@ -308,13 +320,7 @@ sub _handle_delete {
     }
 
     if ($finished) {
-	my $top = $self->{src}->documentElement;
-	if (!$old->isSameNode($top)) {
-	    my $previous = $old->parentNode;
-	    if (!$previous->isSameNode($top)) {
-		$self->_elevate_src_point($previous);
-	    }
-	}
+	$self->_elevate_src_point;
     }
 }
 
@@ -326,22 +332,20 @@ sub _advance_src_point {
 	$self->{src_point} = $sibling;
 	# warn "src_point := " . $self->{src_point}->nodeName . "\n";
     } else {
-	my $top = $self->{src}->documentElement;
-	if (!$self->{src_point}->isSameNode($top)) {
-	    my $previous = $self->{src_point}->parentNode;
-	    if (!$previous->isSameNode($top)) {
-		$self->_elevate_src_point($previous);
-	    }
-	}
+	$self->_elevate_src_point;
     }
 }
 
 sub _elevate_src_point {
-    my ($self, $previous) = @_;
+    my $self = shift;
 
-    # warn "_elevate_src_point(" . $previous->nodeName . ")\n";
+    # warn "_elevate_src_point\n";
 
     my $top = $self->{src}->documentElement;
+
+    return if $self->{src_point}->isSameNode($top);
+
+    my $previous = $self->{src_point}->parentNode;
 
     while (!($previous->nextSibling)) {
 	if ($previous->isSameNode($top)) {
@@ -358,6 +362,7 @@ sub _elevate_src_point {
     # warn "src_point := $src_point_str";
 }
 
+# Moves dest_point one level up (unless it's already pointing to the top).
 sub _elevate_dest_point {
     my $self = shift;
 
@@ -399,6 +404,9 @@ sub _handle_copy {
     }
 
     my $count = $copy_instruction->getAttribute('count');
+    unless (defined($count)) {
+	die $self->{die_head} . "no copy count\n";
+    }
     unless ($count > 0) {
 	die $self->{die_head} . "invalid copy count $count\n";
     }

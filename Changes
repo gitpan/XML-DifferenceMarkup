@@ -21,3 +21,8 @@ Revision history for Perl extension XML::DifferenceMarkup.
 Algorithm::Diff 1.15)
 	- using traverse_balanced instead of traverse_sequences
 	- fixed merge (probably not quite)
+
+0.07  Sun Oct 13 18:44:16 IST 2002
+	- refactored
+	- better handling of invalid diffs
+	- more tests

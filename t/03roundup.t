@@ -550,6 +550,55 @@ B_EXTRACTED_DB_DUMP
   </table>
 </dm:diff>
 DIFF_EXTRACTED_DB_DUMP
+		 },
+		 {
+		  name => 'suboptimal',
+		  a => <<A_SUBOPTIMAL,
+<?xml version="1.0"?>
+<top>
+  <a>
+    <with>
+a tree it would be nice to keep in the common subset
+</with>
+  </a>
+  <a/>
+  <x/>
+  <x/>
+</top>
+A_SUBOPTIMAL
+		  b => <<B_SUBOPTIMAL,
+<?xml version="1.0"?>
+<top>
+  <x/>
+  <x/>
+  <a>
+    <with>
+a tree it would be nice to keep in the common subset
+</with>
+  </a>
+  <a/>
+</top>
+B_SUBOPTIMAL
+		  diff => <<DIFF_SUBOPTIMAL,
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <top>
+    <dm:delete>
+      <a/>
+      <a/>
+    </dm:delete>
+    <dm:copy count="2"/>
+    <dm:insert>
+      <a>
+        <with>
+a tree it would be nice to keep in the common subset
+</with>
+      </a>
+      <a/>
+    </dm:insert>
+  </top>
+</dm:diff>
+DIFF_SUBOPTIMAL
 		 }
 		];
 }
