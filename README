@@ -1,0 +1,32 @@
+XML/DifferenceMarkup version 0.01
+=================================
+
+This module implements an XML diff producing XML output. Both input
+and output are DOM documents, as implemented by XML::LibXML. The
+output format is meant to be human-readable (i.e. simple, as opposed
+to short) - basically the diff is a subset of the input trees,
+annotated with instruction element nodes specifying how to convert the
+source tree to the target by inserting and deleting nodes.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+DEPENDENCIES
+
+This module requires these other modules and libraries:
+
+  XML::LibXML
+  Algorithm::Diff
+
+COPYRIGHT AND LICENCE
+
+Copyright (C) 2002 Vaclav Barta. All rights reserved. This program is
+free software; you can redistribute it and/or modify it under the same
+terms as Perl itself.
+
