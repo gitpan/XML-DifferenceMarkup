@@ -41,6 +41,54 @@ B_DIFFERENT_DOCS
 </dm:diff>
 DIFF_DIFFERENT_DOCS
 		 },
+# 18Jul2003: this is the case where it would be useful to have a
+# "dm:update" attribute
+		 {
+		  name => 'almost same docs',
+		  a => <<A_ALMOST_SAME_DOCS,
+<?xml version="1.0"?>
+<deep>
+  <tree>
+    <with>
+      <some>
+        <subtree/>
+      </some>
+    </with>
+  </tree>
+</deep>
+A_ALMOST_SAME_DOCS
+		  b => <<B_ALMOST_SAME_DOCS,
+<?xml version="1.0"?>
+<different>
+  <tree>
+    <with>
+      <some>
+        <subtree/>
+      </some>
+    </with>
+  </tree>
+</different>
+B_ALMOST_SAME_DOCS
+		  diff => <<DIFF_ALMOST_SAME_DOCS
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <dm:delete>
+    <deep/>
+  </dm:delete>
+  <dm:insert>
+    <different>
+      <tree>
+        <with>
+          <some>
+            <subtree/>
+          </some>
+        </with>
+      </tree>
+    </different>
+  </dm:insert>
+</dm:diff>
+DIFF_ALMOST_SAME_DOCS
+		 },
 		 {
 		  name => 'unordered attributes',
 		  a => <<A_UNORDERED_ATTRIBUTES,
@@ -535,6 +583,47 @@ B_BALANCED_TRAVERSAL
   </a>
 </dm:diff>
 DIFF_BALANCED_TRAVERSAL
+		 },
+# 18Jul2003: this case shows why it's problematic to treat the DOM
+# tree as a sequence
+		 {
+		  name => 'nesting change',
+		  a => <<A_NESTING,
+<?xml version="1.0"?>
+<top>
+  <a/>
+  <b/>
+  <c/>
+</top>
+A_NESTING
+		  b => <<B_NESTING,
+<?xml version="1.0"?>
+<top>
+  <a>
+    <b>
+      <c/>
+    </b>
+  </a>
+</top>
+B_NESTING
+		  diff => <<DIFF_NESTING
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <top>
+    <a>
+      <dm:insert>
+        <b>
+          <c/>
+        </b>
+      </dm:insert>
+    </a>
+    <dm:delete>
+      <b/>
+      <c/>
+    </dm:delete>
+  </top>
+</dm:diff>
+DIFF_NESTING
 		 },
 		 {
 		  name => 'extracted db dump',

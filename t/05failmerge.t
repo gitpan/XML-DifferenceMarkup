@@ -52,6 +52,38 @@ A_TOO_MANY_NAMESPACES
 DIFF_TOO_MANY_NAMESPACES
 		 },
 		 {
+		  name => 'no prefix',
+		  a => <<A_NO_PREFIX,
+<a>
+  <b/>
+  <b/>
+  <c>
+    <d/>
+    <e/>
+    <f/>
+  </c>
+</a>
+A_NO_PREFIX
+		  diff => <<DIFF_NO_PREFIX
+<?xml version="1.0"?>
+<diff xmlns="http://www.locus.cz/XML/DifferenceMarkup">
+  <a>
+    <dm:copy xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup" count="2"/>
+    <dm:delete xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+      <c/>
+    </dm:delete>
+    <dm:insert xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+      <c2>
+        <d/>
+        <e/>
+        <f/>
+      </c2>
+    </dm:insert>
+  </a>
+</diff>
+DIFF_NO_PREFIX
+		 },
+		 {
 		  name => 'unknown instruction',
 		  a => <<A_UNKNOWN_INSTRUCTION,
 <?xml version="1.0"?>

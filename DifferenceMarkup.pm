@@ -152,7 +152,7 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff merge_diff);
 
-$VERSION = '0.09';
+$VERSION = '0.11';
 
 our $NSURL = 'http://www.locus.cz/XML/DifferenceMarkup';
 
@@ -479,7 +479,7 @@ sub _check_top_node_name {
 
     my $nsprefix = $self->{nsprefix};
 
-    unless ($diff_node->nodeName =~ /^$nsprefix:diff$/) {
+    unless ($diff_node->nodeName eq "$nsprefix:diff") {
 	die $self->{die_head} . "invalid document node " . $diff_node->nodeName . "\n";
     }
 }
@@ -503,6 +503,10 @@ sub _get_nsprefix {
     my $dm_ns_url = $dm_ns->getData;
     if ($dm_ns_url ne $NSURL) {
 	die $self->{die_head} . "document node namespace declaration must be $NSURL (not $dm_ns_url)\n";
+    }
+
+    if (!defined($dm_ns->name)) {
+	die $self->{die_head} . "document node namespace declaration has no prefix\n";
     }
 
     return $dm_ns->name;
@@ -539,11 +543,7 @@ sub diff_nodes {
     $self->{dest}->setDocumentElement($self->{dest_point});
 
     if ($m->toString eq $n->toString) {
-	my $copy = $self->{dest}->createElementNS(
-            $self->{nsurl},
-            $self->get_scoped_name('copy'));
-	$self->{dest_point}->appendChild($copy);
-	$copy->setAttribute('count', 1);
+	$self->_append_copy;
     } else {
   	if (!$self->_eq_shallow($m, $n)) {
 	    $self->_replace($m, $n);
@@ -857,7 +857,6 @@ sub _on_match {
     # warn "_on_match\n";
 
     my $last = $self->{dest_point}->lastChild;
-    my $count;
     if (!$last) {
 	$self->_append_copy;
     } elsif ($last->nodeName ne $self->get_scoped_name('copy')) {
@@ -866,7 +865,7 @@ sub _on_match {
 	}
 	$self->_append_copy;
     } else {
-	$count = 1 + $last->getAttribute('count');
+	my $count = 1 + $last->getAttribute('count');
 	$last->setAttribute('count', $count);
     }
 }

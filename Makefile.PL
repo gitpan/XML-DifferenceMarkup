@@ -5,12 +5,9 @@ WriteMakefile(
     'NAME'		=> 'XML::DifferenceMarkup',
     'VERSION_FROM'	=> 'DifferenceMarkup.pm', # finds $VERSION
     'PREREQ_PM'		=> {
-        # 21Sep2002: note: XML::LibXML 1.53 is broken
-        'XML::LibXML'   => '1.52',
-
+        'XML::LibXML'   => '1.58',
         'Algorithm::Diff'   => '1.15',
     },
-    ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
-      (ABSTRACT_FROM => 'DifferenceMarkup.pm', # retrieve abstract from module
-       AUTHOR     => 'Vaclav Barta <vbar@comp.cz>') : ()),
+    ($] >= 5.005 ?    ## keyword supported since 5.005
+      ( AUTHOR     => 'Vaclav Barta <vbar@comp.cz>') : ()),
 );

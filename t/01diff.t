@@ -178,7 +178,7 @@ B_NAMESPACE_WITHOUT_PREFIX
     <root/>
   </dm:delete>
   <dm:insert>
-    <html xmlns="http://www.w3.org/1999/xhtml" lang="cs" lang="cs">
+    <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="cs" lang="cs">
 </html>
   </dm:insert>
 </dm:diff>
@@ -203,8 +203,7 @@ B_DIFFERENT_DTD
     <root/>
   </dm:delete>
   <dm:insert>
-    <html>
-</html>
+    <html xmlns="http://www.w3.org/1999/xhtml"/>
   </dm:insert>
 </dm:diff>
 DIFF_DIFFERENT_DTD

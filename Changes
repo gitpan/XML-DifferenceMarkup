@@ -31,3 +31,6 @@ Algorithm::Diff 1.15)
 	- fix for crash on namespaces without local name
 	- more tests
 
+0.11  Sat May 1 15:50:47 CEST 2004
+	- fix for warning on reserved namespace without local name
+	- test fixes (and the requirement) for LibXML 1.58
