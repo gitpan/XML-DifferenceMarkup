@@ -8,7 +8,7 @@ WriteMakefile(
         # 21Sep2002: note: XML::LibXML 1.53 is broken
         'XML::LibXML'   => '1.52',
 
-        'Algorithm::Diff'   => '0',
+        'Algorithm::Diff'   => '1.15',
     },
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'DifferenceMarkup.pm', # retrieve abstract from module

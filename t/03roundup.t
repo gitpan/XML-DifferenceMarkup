@@ -406,24 +406,164 @@ B_INSERT_BELOW_DELETE
   </page>
 </dm:diff>
 DIFF_INSERT_BELOW_DELETE
+		 },
+		 {
+		  name => 'two changes',
+		  a => <<A_TWO_CHANGES,
+<?xml version="1.0"?>
+<a>
+  <a2>
+    <tree/>
+  </a2>
+  <a3>another</a3>
+</a>
+A_TWO_CHANGES
+		  b => <<B_TWO_CHANGES,
+<?xml version="1.0"?>
+<a>
+  <a2/>
+  <a3>difference</a3>
+</a>
+B_TWO_CHANGES
+		  diff => <<DIFF_TWO_CHANGES
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <a>
+    <a2>
+      <dm:delete>
+        <tree/>
+      </dm:delete>
+    </a2>
+    <a3>
+      <dm:delete>another</dm:delete>
+      <dm:insert>difference</dm:insert>
+    </a3>
+  </a>
+</dm:diff>
+DIFF_TWO_CHANGES
+		 },
+		 {
+		  name => 'balanced traversal',
+		  a => <<A_BALANCED_TRAVERSAL,
+<?xml version="1.0"?>
+<a>
+  <a2>
+    <mostly>
+      <but>
+        <not>
+          <entirely>
+            <same>
+              <tree/>
+            </same>
+          </entirely>
+        </not>
+      </but>
+    </mostly>
+  </a2>
+  <a3>another</a3>
+</a>
+A_BALANCED_TRAVERSAL
+		  b => <<B_BALANCED_TRAVERSAL,
+<?xml version="1.0"?>
+<a>
+  <a2>
+    <mostly>
+      <but>
+        <not>
+          <entirely>
+            <same/>
+          </entirely>
+        </not>
+      </but>
+    </mostly>
+  </a2>
+  <a3>difference</a3>
+</a>
+B_BALANCED_TRAVERSAL
+		  diff => <<DIFF_BALANCED_TRAVERSAL
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <a>
+    <a2>
+      <mostly>
+        <but>
+          <not>
+            <entirely>
+              <same>
+                <dm:delete>
+                  <tree/>
+                </dm:delete>
+              </same>
+            </entirely>
+          </not>
+        </but>
+      </mostly>
+    </a2>
+    <a3>
+      <dm:delete>another</dm:delete>
+      <dm:insert>difference</dm:insert>
+    </a3>
+  </a>
+</dm:diff>
+DIFF_BALANCED_TRAVERSAL
+		 },
+		 {
+		  name => 'extracted db dump',
+		  a => <<A_EXTRACTED_DB_DUMP,
+<?xml version="1.0"?>
+<table>
+<word value="reordered">
+<trans value="a"/>
+<trans value="b"/>
+<trans value="c"/>
+</word>
+<word value="leidenschaftlich"/>
+<word value="leider"/>
+</table>
+A_EXTRACTED_DB_DUMP
+		  b => <<B_EXTRACTED_DB_DUMP,
+<?xml version="1.0"?>
+<table>
+  <word value="reordered">
+    <trans value="b"/>
+    <trans value="c"/>
+    <trans value="a"/>
+  </word>
+  <word value="leidenschaftlich"/>
+  <word value="leider"/>
+</table>
+B_EXTRACTED_DB_DUMP
+		  diff => <<DIFF_EXTRACTED_DB_DUMP
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <table>
+    <word value="reordered">
+      <dm:delete>
+        <trans value="a"/>
+      </dm:delete>
+      <dm:copy count="2"/>
+      <dm:insert>
+        <trans value="a"/>
+      </dm:insert>
+    </word>
+    <dm:copy count="2"/>
+  </table>
+</dm:diff>
+DIFF_EXTRACTED_DB_DUMP
 		 }
 		];
 }
 
 use Test::More tests => 2 * scalar @$testdata;
 
-sub scrub_elem {
-    my ($elem, $doc) = @_;
-
-    $doc =~ s~<(dm[0-9]*):$elem\s+xmlns:\1="http://www.locus.cz/XML/DifferenceMarkup"~<$1:$elem~g;
-    return $doc;
-}
-
 sub scrub {
     my $doc = shift;
 
-    return scrub_elem('copy',
-        scrub_elem('delete', scrub_elem('insert', $doc)));
+    $doc =~ s~<(dm[0-9]*):(?!diff)([a-z0-9]+)\s+xmlns:\1="http://www.locus.cz/XML/DifferenceMarkup"~<$1:$2~g;
+
+    $doc =~ s~<([a-z0-9]+)\s+xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup"~<$1~g;
+
+    return $doc;
 }
 
 my $parser = XML::LibXML->new();

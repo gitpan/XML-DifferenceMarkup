@@ -16,3 +16,8 @@ Revision history for Perl extension XML::DifferenceMarkup.
 	- using toString for shallow comparison
 	- added namespace prefix collision handling
 
+0.06  Sun Sep 29 09:44:30 IST 2002
+	- fixed merging of deleted nodes (showing up with
+Algorithm::Diff 1.15)
+	- using traverse_balanced instead of traverse_sequences
+	- fixed merge (probably not quite)

@@ -108,7 +108,7 @@ differ.)
 
 =head2 Error Handling
 
-Both c<make_diff> and C<merge_diff> throw exceptions on invalid input
+Both C<make_diff> and C<merge_diff> throw exceptions on invalid input
 - its own exceptions as well as exceptions thrown by
 XML::LibXML. These exceptions can usually (not always, though - it
 I<is> possible to construct an input which will crash the calling
@@ -152,7 +152,7 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff merge_diff);
 
-$VERSION = '0.05';
+$VERSION = '0.06';
 
 our $NSURL = 'http://www.locus.cz/XML/DifferenceMarkup';
 
@@ -178,8 +178,8 @@ sub _get_unique_prefix {
 sub make_diff {
     my ($d1, $d2) = @_;
 
-    my $m = $d1->documentElement();
-    my $n = $d2->documentElement();
+    my $m = $d1->documentElement;
+    my $n = $d2->documentElement;
 
     my $dm = XML::DifferenceMarkup::Diff->new(
         _get_unique_prefix($m, $n),
@@ -193,8 +193,8 @@ sub merge_diff {
 
     my $builder = XML::DifferenceMarkup::Merge->new($NSURL);
     return $builder->merge(
-        $src_doc->documentElement(),
-        $diff_doc->documentElement());
+        $src_doc,
+        $diff_doc->documentElement);
 }
 
 package XML::DifferenceMarkup::Merge;
@@ -209,6 +209,8 @@ use vars qw(@ISA);
 sub new {
     my ($class, $nsurl) = @_;
 
+#    warn "new\n";
+
     my $self = XML::DifferenceMarkup::Target::new($class, $nsurl);
     $self->{die_head} = 'XML::DifferenceMarkup merge: invalid diff: ';
 
@@ -218,7 +220,11 @@ sub new {
 sub merge {
     my ($self, $src_tree, $diff_node) = @_;
 
-    $self->{src_point} = $src_tree;
+    # warn "merge\n";
+
+    $self->{src} = $src_tree;
+    $self->{src_point} = $src_tree->documentElement;
+    # warn "src_point := " . $self->{src_point}->nodeName;
 
     $self->{nsprefix} = $self->_get_nsprefix($diff_node);
     $self->_check_top_node_name($diff_node);
@@ -244,6 +250,8 @@ sub merge {
 sub _do_merge {
     my ($self, $tree) = @_;
 
+    # warn "_do_merge\n";
+
     my $name = $tree->nodeName;
 
     if ($name eq $self->get_scoped_name('delete')) {
@@ -261,33 +269,112 @@ sub _do_merge {
 	    $self->_do_merge($ch);
 	    $ch = $ch->nextSibling;
 	}
+
+	$self->_elevate_dest_point;
     }
 }
 
 sub _handle_delete {
     my ($self, $delete_instruction) = @_;
 
+    # warn "_handle_delete\n";
+
     my $ch = $delete_instruction->firstChild;
     unless ($ch) {
 	die $self->{die_head} . "delete node has no children\n";
     }
 
-    while ($ch) {
-	unless ($self->{src_point}) {
-	    die $self->{die_head} . "nothing to delete\n";
-	}
+    my $old = $self->{src_point};
 
+    unless ($self->{src_point}) {
+	die $self->{die_head} . "nothing to delete\n";
+    }
+
+    my $finished = 0;
+    while ($ch) {
 	# should check that the deleted node is the same in source &
 	# diff...
 
-	$self->{src_point} = $self->{src_point}->nextSibling;
+	my $checked_sibling = $self->{src_point}->nextSibling;
+	if ($checked_sibling) {
+	    $self->{src_point} = $checked_sibling;
+	    my $src_point_str = $self->{src_point}->nodeName;
+	    # warn "src_point := $src_point_str";
+	} else {
+	    $finished = 1;
+	}
 
 	$ch = $ch->nextSibling;
+    }
+
+    if ($finished) {
+	my $top = $self->{src}->documentElement;
+	if (!$old->isSameNode($top)) {
+	    my $previous = $old->parentNode;
+	    if (!$previous->isSameNode($top)) {
+		$self->_elevate_src_point($previous);
+	    }
+	}
+    }
+}
+
+sub _advance_src_point {
+    my $self = shift;
+
+    my $sibling = $self->{src_point}->nextSibling;
+    if ($sibling) {
+	$self->{src_point} = $sibling;
+	# warn "src_point := " . $self->{src_point}->nodeName . "\n";
+    } else {
+	my $top = $self->{src}->documentElement;
+	if (!$self->{src_point}->isSameNode($top)) {
+	    my $previous = $self->{src_point}->parentNode;
+	    if (!$previous->isSameNode($top)) {
+		$self->_elevate_src_point($previous);
+	    }
+	}
+    }
+}
+
+sub _elevate_src_point {
+    my ($self, $previous) = @_;
+
+    # warn "_elevate_src_point(" . $previous->nodeName . ")\n";
+
+    my $top = $self->{src}->documentElement;
+
+    while (!($previous->nextSibling)) {
+	if ($previous->isSameNode($top)) {
+	    # warn "wrapping up...\n";
+	    return;
+	}
+
+	$previous = $previous->parentNode;
+	# warn "source point going up to " . $previous->nodeName . "\n";
+    }
+
+    $self->{src_point} = $previous->nextSibling;
+    # my $src_point_str = $self->{src_point} ? $self->{src_point}->nodeName : 'undef';
+    # warn "src_point := $src_point_str";
+}
+
+sub _elevate_dest_point {
+    my $self = shift;
+
+    # warn "_elevate_dest_point\n";
+
+    my $top = $self->{dest}->documentElement;
+    if (!$self->{dest_point}->isSameNode($top)) {
+	$self->{dest_point} = $self->{dest_point}->parentNode;
+	# my $dest_point_str = $self->{dest_point} ? $self->{dest_point}->nodeName : 'undef';
+	# warn "dest_point := $dest_point_str";
     }
 }
 
 sub _handle_insert {
     my ($self, $insert_instruction) = @_;
+
+    # warn "_handle_insert\n";
 
     my $ch = $insert_instruction->firstChild;
     unless ($ch) {
@@ -304,6 +391,8 @@ sub _handle_insert {
 
 sub _handle_copy {
     my ($self, $copy_instruction) = @_;
+
+    # warn "_handle_copy\n";
 
     unless ($self->{src_point}) {
 	die $self->{die_head} . "nothing to copy\n";
@@ -325,33 +414,48 @@ sub _handle_copy {
 sub _copy_shallow {
     my $self = shift;
 
+    # warn "_copy_shallow\n";
+
     unless ($self->{src_point}) {
-	die $self->{die_head} . "nothing to copy\n";
+	die $self->{die_head} . "nothing to shallow-copy\n";
     }
 
     my $new = $self->import_tip($self->{src_point});
     $self->_append($new);
 
-    $self->{src_point} = $self->{src_point}->firstChild;
+    my $checked_child = $self->{src_point}->firstChild;
+    if ($checked_child) {
+	$self->{src_point} = $checked_child;
+	# my $src_point_str = $self->{src_point}->nodeName;
+	# warn "src_point := $src_point_str";
+    } else {
+	$self->_advance_src_point;
+    }
+
     $self->{dest_point} = $new;
+    # my $dest_point_str = $self->{dest_point} ? $self->{dest_point}->nodeName : 'undef';
+    # warn "dest_point := $dest_point_str";
 }
 
 sub _copy_deep {
     my $self = shift;
 
+    # warn "_copy_deep\n";
+
     unless ($self->{src_point}) {
-	die $self->{die_head} . "nothing to copy\n";
+	die $self->{die_head} . "nothing to deep-copy\n";
     }
 
     my $new = $self->{dest}->importNode($self->{src_point});
     $self->_append($new);
 
-    $self->{src_point} = $self->{src_point}->nextSibling;
-    # note: $self->{dest_point} not updated
+    $self->_advance_src_point;
 }
 
 sub _append {
     my ($self, $new) = @_;
+
+    # warn "_append(" . $new->nodeName . ")\n";
 
     if (!exists($self->{dest_point})) {
 	$self->{dest}->setDocumentElement($new);
@@ -363,6 +467,8 @@ sub _append {
 sub _check_top_node_name {
     my ($self, $diff_node) = @_;
 
+    # warn "_check_top_node_name\n";
+
     my $nsprefix = $self->{nsprefix};
 
     unless ($diff_node->nodeName =~ /^$nsprefix:diff$/) {
@@ -372,6 +478,8 @@ sub _check_top_node_name {
 
 sub _get_nsprefix {
     my ($self, $diff_node) = @_;
+
+    # warn "_get_nsprefix\n";
 
     my @dm_ns = $diff_node->getNamespaces;
     if (!@dm_ns) {
@@ -395,7 +503,7 @@ sub _get_nsprefix {
 package XML::DifferenceMarkup::Diff;
 
 use XML::LibXML;
-use Algorithm::Diff qw(traverse_sequences);
+use Algorithm::Diff qw(traverse_balanced);
 
 use strict;
 use warnings;
@@ -447,7 +555,7 @@ sub _eq_shallow {
     # 10Sep2002: this isn't really equality as understood by DOM (the
     # same attributes in different order will be considered
     # different), but it's the same equality as used in other places
-    # (most importantly traverse_sequences)
+    # (most importantly traverse_balanced)
 
     my $p = $self->get_tip($m);
     my $q = $self->get_tip($n);
@@ -518,7 +626,19 @@ sub _descend {
 
     my $a = $self->_children($m);
     my $b = $self->_children($n);
-    traverse_sequences($a, $b,
+
+    # 25Sep2002: From the Algorithm::Diff POD: "If both arrows point
+    # to elements that are not part of the LCS, then
+    # C<traverse_sequences> will advance one of them and call the
+    # appropriate callback, but it is not specified which it will
+    # call." That's a problem, because XML::DifferenceMarkup needs the
+    # callbacks called in a very specific order, namely the order
+    # minimizing the size of the resulting diff. Using
+    # C<traverse_balanced> does not *guarantee* minimal diff, but
+    # "jumping back and forth" between insertions & deletions seems
+    # like a good heuristics...
+
+    traverse_balanced($a, $b,
 		       {
 			MATCH => sub {
 			    $self->_on_match;
@@ -580,10 +700,15 @@ sub _diff {
     return $dom->documentElement;
 }
 
+# returns 1 the subtree of the child has been merged, 0 no merge
+# possible
 sub _combine_first_child {
     my ($self, $first_child, $checked_name) = @_;
 
     my $last = $self->{dest_point}->lastChild;
+    if (!$last) {
+	return 0;
+    }
 
     if (($last->nodeName ne $checked_name) ||
 	($first_child->nodeName ne $checked_name)) {
@@ -643,13 +768,13 @@ sub _combine_pair {
 	$self->{dest_point}->removeChild($last);
     } else {
 	$last->removeChild($moved);
+    }
 
-	if ($self->_combine_first_child($ch,
-                $self->get_scoped_name('delete')) ||
-	    $self->_combine_first_child($ch,
-                $self->get_scoped_name('insert'))) {
-	    $ch = $ch->nextSibling;
-	}
+    if ($self->_combine_first_child($ch,
+            $self->get_scoped_name('delete')) ||
+	$self->_combine_first_child($ch,
+            $self->get_scoped_name('insert'))) {
+	$ch = $ch->nextSibling;
     }
 
     while ($ch) {
