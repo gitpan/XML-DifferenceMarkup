@@ -5,3 +5,8 @@ Revision history for Perl extension XML::DifferenceMarkup.
 
 0.02  Wed Sep  4 18:04:19 2002
 	- added dependencies to Makefile.PL
+
+0.03  Sun Sep  8 14:51:44 IST 2002
+	- fixed pruning of deleted nodes
+	- replaced createElement by createElementNS
+	- more tests

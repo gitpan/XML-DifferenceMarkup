@@ -5,10 +5,13 @@ WriteMakefile(
     'NAME'		=> 'XML::DifferenceMarkup',
     'VERSION_FROM'	=> 'DifferenceMarkup.pm', # finds $VERSION
     'PREREQ_PM'		=> {
-        'XML::LibXML'   => '0', # or a minimum workable version
-        'Algorithm::Diff'   => '0', # or a minimum workable version
+        # 5Sep2002: namespace handling seem to be different between
+        # versions, which confuses the tests
+        'XML::LibXML'   => '1.52',
+
+        'Algorithm::Diff'   => '0',
     },
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'DifferenceMarkup.pm', # retrieve abstract from module
-       AUTHOR     => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
+       AUTHOR     => 'Vaclav Barta <vbar@comp.cz>') : ()),
 );

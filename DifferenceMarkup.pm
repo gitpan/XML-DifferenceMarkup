@@ -80,6 +80,9 @@ nodes when all of the following is true:
 
 =back
 
+The last condition guarantees that the "contextual" nodes always
+contain at least one instruction node.
+
 =head1 BUGS
 
 =over
@@ -121,7 +124,7 @@ require Exporter;
 
 @EXPORT_OK = qw(make_diff);
 
-$VERSION = '0.02';
+$VERSION = '0.03';
 
 # interface (free functions)
 
@@ -157,7 +160,8 @@ sub diff {
     my $n = $d2->documentElement();
 
     if ($m->toString eq $n->toString) {
-	my $copy = $self->{dest}->createElement(
+	my $copy = $self->{dest}->createElementNS(
+            $self->{nsurl},
             $self->_get_scoped_name('copy'));
 	$self->{growth_point}->appendChild($copy);
 	$copy->setAttribute('count', 1);
@@ -222,18 +226,34 @@ sub _replace {
 
     # warn "_replace\n";
 
-    my $del = $self->{dest}->createElement(
+    my $del = $self->{dest}->createElementNS(
+        $self->{nsurl},
         $self->_get_scoped_name('delete'));
     $self->{growth_point}->appendChild($del);
 
-    # 1Sep2002: lower-level implementation might be more efficient -
-    # or it might not...
-    my $tip = $m->cloneNode(1);
-    $self->_prune($tip);
-
-    $del->appendChild($self->{dest}->importNode($tip));
-
+    $del->appendChild($self->_get_tip($m));
     $self->_append_insert($n);
+}
+
+# move a node to the destination tree, removing its children in the
+# process (note that the result is different than cloneNode(0) - the
+# attributes are kept)
+sub _get_tip {
+    my ($self, $n) = @_;
+
+    my $tip = $n->cloneNode(1);
+    $self->_remove_children($tip);
+    $self->{dest}->importNode($tip);
+
+    # 8Sep2002: this approach is problematic because it doesn't copy
+    # the namespace of $n
+#      my $tip = $self->{dest}->createElement($n->nodeName);
+#      my @attr = $n->attributes;
+#      foreach (@attr) {
+#  	$tip->setAttribute($_->nodeName, $_->nodeValue);
+#      }
+
+    return $tip;
 }
 
 sub _append_insert {
@@ -241,7 +261,8 @@ sub _append_insert {
 
     # warn "_append_insert(" . $self . ", " . $n->nodeName . ")\n";
 
-    my $ins = $self->{dest}->createElement(
+    my $ins = $self->{dest}->createElementNS(
+        $self->{nsurl},
         $self->_get_scoped_name('insert'));
     $self->{growth_point}->appendChild($ins);
     $ins->appendChild($self->{dest}->importNode($n));
@@ -252,7 +273,8 @@ sub _append_delete {
 
     # warn "_append_delete(" . $self . ", " . $n->nodeName . ")\n";
 
-    my $del = $self->{dest}->createElement(
+    my $del = $self->{dest}->createElementNS(
+        $self->{nsurl},
         $self->_get_scoped_name('delete'));
     $self->{growth_point}->appendChild($del);
     $del->appendChild($self->{dest}->importNode($n));
@@ -263,11 +285,7 @@ sub _descend {
 
     # warn "_descend\n";
 
-    my $seq = $self->{dest}->createElement($n->nodeName);
-    my @attr = $n->attributes;
-    foreach (@attr) {
-	$seq->setAttribute($_->nodeName, $_->nodeValue);
-    }
+    my $seq = $self->_get_tip($n);
 
     $self->{growth_point}->appendChild($seq);
     $self->{growth_point} = $seq;
@@ -464,8 +482,7 @@ sub _on_delete {
     }
 }
 
-# remove children of a node (note that the result is different than
-# cloneNode(0) - the attributes are kept)
+# remove grandchildren of a node
 sub _prune {
     my ($self, $n) = @_;
 
@@ -499,7 +516,8 @@ sub _on_match {
     my $last = $self->{growth_point}->lastChild;
     my $count;
     if (!$last || $last->nodeName ne $self->_get_scoped_name('copy')) {
-	$last = $self->{dest}->createElement(
+	$last = $self->{dest}->createElementNS(
+            $self->{nsurl},
             $self->_get_scoped_name('copy'));
 	$self->{growth_point}->appendChild($last);
 	$count = 1;

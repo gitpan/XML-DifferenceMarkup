@@ -27,6 +27,40 @@ B_SAME_DOCS
 DIFF_SAME_DOCS
 		 },
 		 {
+		  name => 'different docs',
+		  a => <<A_DIFFERENT_DOCS,
+<?xml version="1.0"?>
+  <old>
+    <tree>
+      <with>
+        <some>
+          <subtree/>
+        </some>
+      </with>
+    </tree>
+  </old>
+A_DIFFERENT_DOCS
+		  b => <<B_DIFFERENT_DOCS,
+<?xml version="1.0"?>
+<new>
+  <tree>with the whole subtree, of course</tree>
+</new>
+B_DIFFERENT_DOCS
+		  diff => <<DIFF_DIFFERENT_DOCS
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <dm:delete>
+    <old/>
+  </dm:delete>
+  <dm:insert>
+    <new>
+      <tree>with the whole subtree, of course</tree>
+    </new>
+  </dm:insert>
+</dm:diff>
+DIFF_DIFFERENT_DOCS
+		 },
+		 {
 		  name => 'different attributes',
 		  a => <<A_DIFFERENT_ATTRIBUTES,
 <node with="attr"/>
@@ -99,6 +133,25 @@ B_COMMENT_NODE
 </dm:diff>
 DIFF_COMMENT_NODE
                  },
+
+# 8Sep2002: TODO: are A & B docs the same?
+#  		 {
+#  		  name => 'whitespace in attribute value',
+#  		  a => <<A_WHITESPACE_IN_ATTRIBUTE_VALUE,
+#  <?xml version="1.0"?>
+#  <node attr="a b  c"/>
+#  A_WHITESPACE_IN_ATTRIBUTE_VALUE
+#  		  b => <<B_WHITESPACE_IN_ATTRIBUTE_VALUE,
+#  <?xml version="1.0"?>
+#  <node attr="a  b c"/>
+#  B_WHITESPACE_IN_ATTRIBUTE_VALUE
+#  		  diff => <<DIFF_WHITESPACE_IN_ATTRIBUTE_VALUE
+#  <?xml version="1.0"?>
+#  <dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+#    <dm:copy count="1"/>
+#  </dm:diff>
+#  DIFF_WHITESPACE_IN_ATTRIBUTE_VALUE
+#  		 },
 		 {
 		  name => 'pruned delete',
 		  a => <<A_PRUNED_DELETE,
@@ -129,6 +182,7 @@ A_PRUNED_DELETE
 </little>
 </a>
 B_PRUNED_DELETE
+# 5Sep2002: the extra namespace declaration is ugly...
 		  diff => <<DIFF_PRUNED_DELETE
 <?xml version="1.0"?>
 <dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
@@ -136,7 +190,7 @@ B_PRUNED_DELETE
     <little>
       <bit>
         <deeper>
-          <tree>
+          <tree xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
             <dm:delete>
               <with/>
             </dm:delete>
@@ -170,16 +224,19 @@ DIFF_REORDER
 		 {
 		  name => 'asymmetric replace',
 		  a => <<A_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
 <top>
 <a/>
 <b/>
 </top>
 A_ASYMMETRIC_REPLACE
 		  b => <<B_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
 <top>
 <x/>
 </top>
 B_ASYMMETRIC_REPLACE
+# 5Sep2002: the extra namespace declaration is ugly...
 		  diff => <<DIFF_ASYMMETRIC_REPLACE
 <?xml version="1.0"?>
 <dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
@@ -188,12 +245,45 @@ B_ASYMMETRIC_REPLACE
       <a/>
       <b/>
     </dm:delete>
-    <dm:insert>
+    <dm:insert xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
       <x/>
     </dm:insert>
   </top>
 </dm:diff>
 DIFF_ASYMMETRIC_REPLACE
+		 },		 
+		 { # 5Sep2002: added to expose an incorect use of _prune
+		  name => 'deep asymmetric replace',
+		  a => <<A_DEEP_ASYMMETRIC_DELETE,
+<?xml version="1.0"?>
+<top>
+<a/>
+<b>
+<with/> a subtree
+</b>
+</top>
+A_DEEP_ASYMMETRIC_DELETE
+		  b => <<B_DEEP_ASYMMETRIC_DELETE,
+<?xml version="1.0"?>
+<top>
+<x/>
+</top>
+B_DEEP_ASYMMETRIC_DELETE
+# 5Sep2002: the extra namespace declaration is ugly...
+		  diff => <<DIFF_DEEP_ASYMMETRIC_DELETE
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <top>
+    <dm:delete>
+      <a/>
+      <b/>
+    </dm:delete>
+    <dm:insert xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+      <x/>
+    </dm:insert>
+  </top>
+</dm:diff>
+DIFF_DEEP_ASYMMETRIC_DELETE
 		 },
 		 {
 		  name => 'repeated delete',
