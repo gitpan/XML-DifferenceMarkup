@@ -1,5 +1,5 @@
 
-use XML::DifferenceMarkup qw(make_diff);
+use XML::DifferenceMarkup qw(make_diff merge_diff);
 
 use strict;
 
@@ -7,25 +7,6 @@ our $testdata;
 
 BEGIN {
     $testdata = [
-		 {
-		  name => 'same docs',
-		  a => <<A_SAME_DOCS,
-<some>
-  <tree/>
-</some>
-A_SAME_DOCS
-		  b => <<B_SAME_DOCS,
-<some>
-  <tree/>
-</some>
-B_SAME_DOCS
-		  diff => <<DIFF_SAME_DOCS
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <dm:copy count="1"/>
-</dm:diff>
-DIFF_SAME_DOCS
-		 },
 		 {
 		  name => 'different docs',
 		  a => <<A_DIFFERENT_DOCS,
@@ -61,26 +42,6 @@ B_DIFFERENT_DOCS
 DIFF_DIFFERENT_DOCS
 		 },
 		 {
-		  name => 'different attributes',
-		  a => <<A_DIFFERENT_ATTRIBUTES,
-<node with="attr"/>
-A_DIFFERENT_ATTRIBUTES
-		  b => <<B_DIFFERENT_ATTRIBUTES,
-<node with="other value"/>
-B_DIFFERENT_ATTRIBUTES
-		  diff => <<DIFF_DIFFERENT_ATTRIBUTES
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <dm:delete>
-    <node with="attr"/>
-  </dm:delete>
-  <dm:insert>
-    <node with="other value"/>
-  </dm:insert>
-</dm:diff>
-DIFF_DIFFERENT_ATTRIBUTES
-		 },
-		 {
 		  name => 'unordered attributes',
 		  a => <<A_UNORDERED_ATTRIBUTES,
 <?xml version="1.0"?>
@@ -103,47 +64,15 @@ B_UNORDERED_ATTRIBUTES
 DIFF_UNORDERED_ATTRIBUTES
 		 },
 		 {
-		  name => 'whitespace between attributes',
-		  a => <<A_WHITESPACE_BETWEEN_ATTRIBUTES,
-<?xml version="1.0"?>
-<node a="a"  b="b"/>
-A_WHITESPACE_BETWEEN_ATTRIBUTES
-		  b => <<B_WHITESPACE_BETWEEN_ATTRIBUTES,
-<?xml version="1.0"?>
-<node a="a" b="b"/>
-B_WHITESPACE_BETWEEN_ATTRIBUTES
-		  diff => <<DIFF_WHITESPACE_BETWEEN_ATTRIBUTES
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <dm:copy count="1"/>
-</dm:diff>
-DIFF_WHITESPACE_BETWEEN_ATTRIBUTES
-		 },
-		 {
-		  name => 'attribute quotes',
-		  a => <<A_ATTRIBUTE_QUOTES,
-<?xml version="1.0"?>
-<node a="a" b='b'/>
-A_ATTRIBUTE_QUOTES
-		  b => <<B_ATTRIBUTE_QUOTES,
-<?xml version="1.0"?>
-<node a='a' b="b"/>
-B_ATTRIBUTE_QUOTES
-		  diff => <<DIFF_ATTRIBUTE_QUOTES
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <dm:copy count="1"/>
-</dm:diff>
-DIFF_ATTRIBUTE_QUOTES
-		 },
-		 {
 		  name => 'text node',
 		  a => <<A_TEXT_NODE,
+<?xml version="1.0"?>
 <top>
 Some text.
 </top>
 A_TEXT_NODE
 		  b => <<B_TEXT_NODE,
+<?xml version="1.0"?>
 <top>
 A changed text.
 </top>
@@ -165,12 +94,14 @@ DIFF_TEXT_NODE
 		 {
 		  name => 'comment node',
 		  a => <<A_COMMENT_NODE,
+<?xml version="1.0"?>
 <textnode>
 <!-- with just a comment -->
 </textnode>
 <!-- note that the comment outside the top node is not preserved -->
 A_COMMENT_NODE
 		  b => <<B_COMMENT_NODE,
+<?xml version="1.0"?>
 <textnode>
 <!-- with a different comment -->
 </textnode>
@@ -192,31 +123,33 @@ DIFF_COMMENT_NODE
 		 {
 		  name => 'pruned delete',
 		  a => <<A_PRUNED_DELETE,
+<?xml version="1.0"?>
 <a>
-<little>
-<bit>
-<deeper>
-<tree>
-<with>
-<additional>
-<nodes/>
-</additional>
-</with>
-</tree>
-</deeper>
-</bit>
-</little>
+  <little>
+    <bit>
+      <deeper>
+        <tree>
+          <with>
+            <additional>
+              <nodes/>
+            </additional>
+          </with>
+        </tree>
+      </deeper>
+    </bit>
+  </little>
 </a>
 A_PRUNED_DELETE
 		  b => <<B_PRUNED_DELETE,
+<?xml version="1.0"?>
 <a>
-<little>
-<bit>
-<deeper>
-<tree/>
-</deeper>
-</bit>
-</little>
+  <little>
+    <bit>
+      <deeper>
+        <tree/>
+      </deeper>
+    </bit>
+  </little>
 </a>
 B_PRUNED_DELETE
 # 5Sep2002: the extra namespace declaration is ugly...
@@ -227,7 +160,7 @@ B_PRUNED_DELETE
     <little>
       <bit>
         <deeper>
-          <tree xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+          <tree>
             <dm:delete>
               <with/>
             </dm:delete>
@@ -244,32 +177,32 @@ DIFF_PRUNED_DELETE
 		  a => <<A_DELETE_BEFORE_COPY,
 <?xml version="1.0"?>
 <delta>
-<uri value="first">
-<word value="1."/>
-</uri>
-<uri value="second">
-<word value="2."/>
-</uri>
-<uri value="third">
-<word value="3."/>
-</uri>
-<uri value="fourth">
-<word value="4."/>
-</uri>
+  <uri value="first">
+    <word value="1."/>
+  </uri>
+  <uri value="second">
+    <word value="2."/>
+  </uri>
+  <uri value="third">
+    <word value="3."/>
+  </uri>
+  <uri value="fourth">
+    <word value="4."/>
+  </uri>
 </delta>
 A_DELETE_BEFORE_COPY
 		  b => <<B_DELETE_BEFORE_COPY,
 <?xml version="1.0"?>
 <delta>
-<uri value="first">
-<word value="1."/>
-</uri>
-<uri value="second">
-<word value="2."/>
-</uri>
-<uri value="fourth">
-<word value="4."/>
-</uri>
+  <uri value="first">
+    <word value="1."/>
+  </uri>
+  <uri value="second">
+    <word value="2."/>
+  </uri>
+  <uri value="fourth">
+    <word value="4."/>
+  </uri>
 </delta>
 B_DELETE_BEFORE_COPY
 		  diff => <<DIFF_DELETE_BEFORE_COPY,
@@ -286,105 +219,24 @@ B_DELETE_BEFORE_COPY
 DIFF_DELETE_BEFORE_COPY
 		 },
 		 {
-		  name => 'reorder',
-		  a => <<A_REORDER,
-<some>text<!-- and comment --></some>
-A_REORDER
-		  b => <<B_REORDER,
-<some><!-- and comment -->text</some>
-B_REORDER
-		  diff => <<DIFF_REORDER
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <some>
-    <dm:delete>text</dm:delete>
-    <dm:copy count="1"/>
-    <dm:insert>text</dm:insert>
-  </some>
-</dm:diff>
-DIFF_REORDER
-		 },
-		 {
-		  name => 'asymmetric replace',
-		  a => <<A_ASYMMETRIC_REPLACE,
-<?xml version="1.0"?>
-<top>
-<a/>
-<b/>
-</top>
-A_ASYMMETRIC_REPLACE
-		  b => <<B_ASYMMETRIC_REPLACE,
-<?xml version="1.0"?>
-<top>
-<x/>
-</top>
-B_ASYMMETRIC_REPLACE
-# 5Sep2002: the extra namespace declaration is ugly...
-		  diff => <<DIFF_ASYMMETRIC_REPLACE
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <top>
-    <dm:delete>
-      <a/>
-      <b/>
-    </dm:delete>
-    <dm:insert xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-      <x/>
-    </dm:insert>
-  </top>
-</dm:diff>
-DIFF_ASYMMETRIC_REPLACE
-		 },		 
-		 { # 5Sep2002: added to expose an incorect use of _prune
-		  name => 'deep asymmetric replace',
-		  a => <<A_DEEP_ASYMMETRIC_DELETE,
-<?xml version="1.0"?>
-<top>
-<a/>
-<b>
-<with/> a subtree
-</b>
-</top>
-A_DEEP_ASYMMETRIC_DELETE
-		  b => <<B_DEEP_ASYMMETRIC_DELETE,
-<?xml version="1.0"?>
-<top>
-<x/>
-</top>
-B_DEEP_ASYMMETRIC_DELETE
-# 5Sep2002: the extra namespace declaration is ugly...
-		  diff => <<DIFF_DEEP_ASYMMETRIC_DELETE
-<?xml version="1.0"?>
-<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-  <top>
-    <dm:delete>
-      <a/>
-      <b/>
-    </dm:delete>
-    <dm:insert xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
-      <x/>
-    </dm:insert>
-  </top>
-</dm:diff>
-DIFF_DEEP_ASYMMETRIC_DELETE
-		 },
-		 {
 		  name => 'repeated delete',
 		  a => <<A_REPEATED_DELETE,
+<?xml version="1.0"?>
 <top>
-<a/>
-<b/>
-<c/>
-<d/>
-<e/>
-<f/>
+  <a/>
+  <b/>
+  <c/>
+  <d/>
+  <e/>
+  <f/>
 </top>
 A_REPEATED_DELETE
 		  b => <<B_REPEATED_DELETE,
+<?xml version="1.0"?>
 <top>
-<d/>
-<e/>
-<f/>
+  <d/>
+  <e/>
+  <f/>
 </top>
 B_REPEATED_DELETE
 		  diff => <<DIFF_REPEATED_DELETE
@@ -400,18 +252,192 @@ B_REPEATED_DELETE
   </top>
 </dm:diff>
 DIFF_REPEATED_DELETE
+		 },
+		 {
+		  name => 'reorder',
+		  a => <<A_REORDER,
+<?xml version="1.0"?>
+<some>text<!-- and comment --></some>
+A_REORDER
+		  b => <<B_REORDER,
+<?xml version="1.0"?>
+<some><!-- and comment -->text</some>
+B_REORDER
+		  diff => <<DIFF_REORDER
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <some>
+    <dm:delete>text</dm:delete>
+    <dm:copy count="1"/>
+    <dm:insert>text</dm:insert>
+  </some>
+</dm:diff>
+DIFF_REORDER
+		 },
+		 {
+		  name => 'repetitive',
+		  a => <<A_REPETITIVE,
+<?xml version="1.0"?>
+<repetitive>
+  <a/>
+  <a/>
+  <a/>
+  <a/>
+  <a/>
+  <a/>
+</repetitive>
+A_REPETITIVE
+		  b => <<B_REPETITIVE,
+<?xml version="1.0"?>
+<repetitive>
+  <a/>
+  <a/>
+</repetitive>
+B_REPETITIVE
+		  diff => <<DIFF_REPETITIVE
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <repetitive>
+    <dm:copy count="2"/>
+    <dm:delete>
+      <a/>
+      <a/>
+      <a/>
+      <a/>
+    </dm:delete>
+  </repetitive>
+</dm:diff>
+DIFF_REPETITIVE
+		 },
+		 {
+		  name => 'asymmetric replace',
+		  a => <<A_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
+<top>
+  <a/>
+  <b/>
+</top>
+A_ASYMMETRIC_REPLACE
+		  b => <<B_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
+<top>
+  <x/>
+</top>
+B_ASYMMETRIC_REPLACE
+# 5Sep2002: the extra namespace declaration is ugly...
+		  diff => <<DIFF_ASYMMETRIC_REPLACE
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <top>
+    <dm:delete>
+      <a/>
+      <b/>
+    </dm:delete>
+    <dm:insert>
+      <x/>
+    </dm:insert>
+  </top>
+</dm:diff>
+DIFF_ASYMMETRIC_REPLACE
+		 },		 
+		 { # 5Sep2002: added to expose an incorect use of _prune
+		  name => 'deep asymmetric replace',
+		  a => <<A_DEEP_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
+<top>
+  <a/>
+  <b>
+    <with/> a subtree
+  </b>
+</top>
+A_DEEP_ASYMMETRIC_REPLACE
+		  b => <<B_DEEP_ASYMMETRIC_REPLACE,
+<?xml version="1.0"?>
+<top>
+  <x/>
+</top>
+B_DEEP_ASYMMETRIC_REPLACE
+# 5Sep2002: the extra namespace declaration is ugly...
+		  diff => <<DIFF_DEEP_ASYMMETRIC_REPLACE
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <top>
+    <dm:delete>
+      <a/>
+      <b/>
+    </dm:delete>
+    <dm:insert>
+      <x/>
+    </dm:insert>
+  </top>
+</dm:diff>
+DIFF_DEEP_ASYMMETRIC_REPLACE
+		 },
+		 {
+		  name => 'insert below delete',
+		  a => <<A_INSERT_BELOW_DELETE,
+<?xml version="1.0"?>
+<page attr="1">
+  <word value="Arbeiter"/>
+  <word value="Kopf"/>
+</page>
+A_INSERT_BELOW_DELETE
+		  b => <<B_INSERT_BELOW_DELETE,
+<?xml version="1.0"?>
+<page attr="1">
+  <word value="Kopf">
+    <trans value="hlava"/>
+  </word>
+</page>
+B_INSERT_BELOW_DELETE
+# 14Sep2002: the extra namespace declaration is ugly...
+		  diff => <<DIFF_INSERT_BELOW_DELETE,
+<?xml version="1.0"?>
+<dm:diff xmlns:dm="http://www.locus.cz/XML/DifferenceMarkup">
+  <page attr="1">
+    <dm:delete>
+      <word value="Arbeiter"/>
+    </dm:delete>
+    <word value="Kopf">
+      <dm:insert>
+        <trans value="hlava"/>
+      </dm:insert>
+    </word>
+  </page>
+</dm:diff>
+DIFF_INSERT_BELOW_DELETE
 		 }
 		];
 }
 
-use Test::More tests => scalar @$testdata;
+use Test::More tests => 2 * scalar @$testdata;
+
+sub scrub_elem {
+    my ($elem, $doc) = @_;
+
+    $doc =~ s~<(dm[0-9]*):$elem\s+xmlns:\1="http://www.locus.cz/XML/DifferenceMarkup"~<$1:$elem~g;
+    return $doc;
+}
+
+sub scrub {
+    my $doc = shift;
+
+    return scrub_elem('copy',
+        scrub_elem('delete', scrub_elem('insert', $doc)));
+}
 
 my $parser = XML::LibXML->new();
 $parser->keep_blanks(0);
 
 foreach my $data (@$testdata) {
-    my $dom = make_diff($parser->parse_string($data->{a}),
-			$parser->parse_string($data->{b}));
-    is($dom->toString(1), $data->{diff}, $data->{name});
+    my $a = $parser->parse_string($data->{a});
+    my $b = $parser->parse_string($data->{b});
+
+    my $diff = make_diff($a, $b);
+    is(scrub($diff->toString(1)), $data->{diff},
+        $data->{name} . ' (diff)');
+
+    my $merge = merge_diff($a, $diff);
+    is($merge->toString(1), $data->{b}, $data->{name} . ' (merge)');
 }
 

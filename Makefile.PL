@@ -5,8 +5,7 @@ WriteMakefile(
     'NAME'		=> 'XML::DifferenceMarkup',
     'VERSION_FROM'	=> 'DifferenceMarkup.pm', # finds $VERSION
     'PREREQ_PM'		=> {
-        # 5Sep2002: namespace handling seem to be different between
-        # versions, which confuses the tests
+        # 21Sep2002: note: XML::LibXML 1.53 is broken
         'XML::LibXML'   => '1.52',
 
         'Algorithm::Diff'   => '0',
