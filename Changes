@@ -34,3 +34,8 @@ Algorithm::Diff 1.15)
 0.11  Sat May 1 15:50:47 CEST 2004
 	- fix for warning on reserved namespace without local name
 	- test fixes (and the requirement) for LibXML 1.58
+
+1.00  Sat Jul  1 13:49:34 2006
+	- reimplemented with XS; created by h2xs 1.23 with options
+		-A -v 1.00 -n XML::DifferenceMarkup
+

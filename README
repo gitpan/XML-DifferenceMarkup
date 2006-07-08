@@ -1,5 +1,5 @@
-XML/DifferenceMarkup version 0.01
-=================================
+XML-DifferenceMarkup version 1.x
+================================
 
 This module implements an XML diff producing XML output. Both input
 and output are DOM documents, as implemented by XML::LibXML. The
@@ -19,14 +19,18 @@ To install this module type the following:
 
 DEPENDENCIES
 
-This module requires these other modules and libraries:
-
-  XML::LibXML
-  Algorithm::Diff
+This module requires XML::LibXML and its dependencies (see the
+documentation of XML::LibXML for the full list) and also the
+libdiffmark library, available as part of the diffmark package from
+http://www.mangrove.cz/diffmark/ . Consequently, it's an XS module,
+whose compilation requires a C++ compiler. It's tested only with gcc
+on Linux; it might work on other unix-like platforms, but probably not
+on Windows.
 
 COPYRIGHT AND LICENCE
 
-Copyright (C) 2004 Vaclav Barta. All rights reserved. This program is
-free software; you can redistribute it and/or modify it under the same
-terms as Perl itself.
+Copyright (C) 2006 by Vaclav Barta
 
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.7 or,
+at your option, any later version of Perl 5 you may have available.
