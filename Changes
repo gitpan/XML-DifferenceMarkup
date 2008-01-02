@@ -39,3 +39,7 @@ Algorithm::Diff 1.15)
 	- reimplemented with XS; created by h2xs 1.23 with options
 		-A -v 1.00 -n XML::DifferenceMarkup
 
+1.01  Wed Jan  2 19:38:10 2008
+	- resolved name conflict between Perl and gcc headers
+	(reported by Brad Guillory)
+

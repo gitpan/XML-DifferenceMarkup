@@ -5,6 +5,15 @@ extern "C" {
 #include "ppport.h"
 }
 
+//required because of namespace collision between perl's <embed.h> 
+//a private macro in gcc's <iostream>
+#ifdef do_open
+  #undef do_open
+#endif
+#ifdef do_close
+  #undef do_close
+#endif
+
 #include "diff.hh"
 #include "merge.hh"
 #include "nspace.hh"
