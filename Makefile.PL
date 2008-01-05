@@ -10,6 +10,15 @@ $|=0;
 
 $CC = 'g++';
 
+my %cplusplus_opt = (
+    CC => $CC,
+    # default includes -Wdeclaration-after-statement, which
+    # isn't valid for C++
+    CCFLAGS => '-fno-strict-aliasing -pipe -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64',
+    LD => '$(CC)',
+    XSOPT => '-C++'
+);
+
 my %config;
 
 while($_ = shift) {
@@ -18,8 +27,6 @@ while($_ = shift) {
 }
 
 my $DEBUG = delete $config{DEBUG};
-
-# $config{DEFINE} .= " -DXS_WARNINGS";
 
 if ( $] >= 5.006 ) {
     warn "enable native perl UTF8\n";
@@ -69,8 +76,18 @@ if ($config{INC} !~ /\bdiffmark\b/) {
     foreach (qw(/usr/include /usr/local/include)) {
 	if (-f "$_/diffmark/diff.hh") {
 	    $config{INC} .= " -I$_/diffmark";
+	    $have_diffmark_headers = 1;
 	    last;
 	}
+    }
+
+    unless($have_diffmark_headers) {
+        error_exit(<<DEATH);
+diffmark headers not found
+Try setting LIBS and INC values on the command line,
+or get diffmark from
+  http://www.mangrove.cz/diffmark/
+DEATH
     }
 }
 
@@ -92,16 +109,17 @@ if ( $config{DEBUG} ) {
     warn "win32 compile\n" if $is_Win32;
 }
 
-unless (have_library("xml2") or have_library("libxml2")) {
-    die <<DEATH;
+unless (have_library("xml2", "xmlCleanupParser") or
+	have_library("libxml2", "xmlCleanupParser")) {
+    error_exit(<<DEATH);
 libxml2 not found
 Try setting LIBS and INC values on the command line,
 or do whatever it took to install XML::LibXML
 DEATH
 }
 
-unless (have_library("diffmark")) {
-    die <<DEATH;
+unless (have_library("diffmark", "xutil::remove_children")) {
+    error_exit(<<DEATH);
 libdiffmark not found
 Try setting LIBS and INC values on the command line,
 or get diffmark from
@@ -117,17 +135,12 @@ WriteMakefile(
 			   },
 	      ABSTRACT_FROM  => 'lib/XML/DifferenceMarkup.pm', # retrieve abstract from module
 	      AUTHOR => 'Vaclav Barta <vbar@comp.cz>',
-	      CC => $CC,
-	      # default includes -Wdeclaration-after-statement, which
-	      # isn't valid for C++
-	      CCFLAGS => '-fno-strict-aliasing -pipe -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64',
-	      LD => '$(CC)',
 	      OBJECT => 'DifferenceMarkup.o perl-libxml-mm.o perl-libxml-sax.o',
 	      depend => {
 			 'perl-libxml-mm.o' => 'perl-libxml-mm.c perl-libxml-mm.h',
 			 'perl-libxml-sax.o' => 'perl-libxml-sax.c perl-libxml-sax.h',
 			},
-	      XSOPT => '-C++',
+	      %cplusplus_opt,
 	      %config
 );
 
@@ -147,6 +160,16 @@ BEGIN {
         $DEVNULL = eval { File::Spec->devnull };
         if ($@) { $DEVNULL = '/dev/null' }
     }
+}
+
+# In case of missing dependencies,
+# http://cpantest.grango.org/wiki/CPANAuthorNotes recommends to "just
+# exit from the Makefile.PL or Build.PL normally (with an exit code of
+# 0)".
+sub error_exit {
+    my $msg = shift;
+    print $msg;
+    exit 0;
 }
 
 sub rm_f {
@@ -231,10 +254,8 @@ sub backtick {
 }
 
 sub try_link0 {
-    my ($src, $opt) = @_;
+    my ($src, %opt) = @_;
     my $cfile = gensym();
-    # local $config{LIBS};
-    # $config{LIBS} .= $opt;
     unless (mkdir(".testlink", 0777)) {
         rm_fr(".testlink");
         mkdir(".testlink", 0777) || die "Cannot create .testlink dir: $!";
@@ -281,8 +302,13 @@ while($_ = shift @ARGV) {
     warn("$k = $v\n");
     $config{$k} = $v;
 }
-WriteMakefile(NAME => "Conftest", VERSION_FROM => "Conftest.pm", %config);
+WriteMakefile(NAME => "Conftest", VERSION_FROM => "Conftest.pm",
 EOT
+    foreach (keys %opt) {
+        print $cfile $_ . ' => \'' . $opt{$_} . "',\n",
+    }
+
+    print $cfile '%config);', "\n";
     close($cfile);
     open($cfile, ">test.pl") || die "Cannot write to file test.pl: $!";
     print $cfile <<EOT;
@@ -292,7 +318,7 @@ EOT
     close($cfile);
     my $quote = $is_Win32 ? '"' : "'";
     xsystem("$^X Makefile.PL " . join(' ', map { "${quote}$_=$config{$_}${quote}" } keys %config));
-    xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${opt}${quote}");
+    xsystem("$Config{make} test ${quote}OTHERLDFLAGS=${quote}");
 } # end try_link0
 
 sub try_link {
@@ -312,17 +338,17 @@ sub have_library {
     printf("looking for -l%s... ", $lib) if $func eq "blank";
 
     my $result;
-    if ($func) {
+    if ($lib ne 'diffmark') {
         my $libs = $is_Win32 ? " $lib.lib  " : "-l$lib";
         if ($is_Win32) {
-            $result = try_link(<<"SRC",undef );
+            $result = try_link(<<"SRC");
 #include <windows.h>
 #include <winsock.h>
 blank() { return 0; }
 int t() { ${func}(); return 0; }
 SRC
             unless ($result) {
-                $result = try_link(<<"SRC", undef);
+                $result = try_link(<<"SRC");
 #include <windows.h>
 #include <winsock.h>
 blank() { return 0; }
@@ -331,11 +357,16 @@ SRC
             }
         }
         else {
-            $result = try_link(<<"SRC", undef);
+            $result = try_link(<<"SRC");
 blank() { return 0; }
 int t() { ${func}(); return 0; }
 SRC
         }
+    } else {
+        $result = try_link(<<"SRC", %cplusplus_opt);
+#include "xutil.hh"
+int t() { xutil::remove_children(0); return 0; }
+SRC
     }
 
     unless ($result) {

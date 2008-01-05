@@ -43,3 +43,5 @@ Algorithm::Diff 1.15)
 	- resolved name conflict between Perl and gcc headers
 	(reported by Brad Guillory)
 
+1.02  Sat Jan  5 12:10:37 2008
+	- stricter checks for required libraries

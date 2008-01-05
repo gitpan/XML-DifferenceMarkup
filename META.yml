@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:                XML-DifferenceMarkup
-version:             1.01
+version:             1.02
 abstract:            XML diff and merge
 license:             ~
 author:              
