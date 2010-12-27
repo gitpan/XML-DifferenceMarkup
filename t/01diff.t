@@ -6,6 +6,18 @@ use vars qw(*D);
 
 our ($path, @files, $testcount);
 
+sub reform
+{
+    my $out = '';
+    foreach (split /\n/, shift) {
+	$_ =~ s/^\s+//;
+	$out .= $_;
+	$out .= "\n";
+    }
+
+    return $out;
+}
+
 BEGIN
 {
     $path = "testdata/diff";
@@ -27,10 +39,10 @@ while ($i < $testcount) {
     my $b = $parser->parse_file("$path/$n" . "b.xml");
 
     open(D, "$path/$n" . "d.xml");
-    my $expected = join '', <D>;
+    my $expected = reform(join '', <D>);
 
     my $diff = make_diff($a, $b);
-    my $actual = $diff->toString(1);
+    my $actual = reform($diff->toString(1));
 
     is($actual, $expected, "$path/$n?.xml");
 

@@ -6,6 +6,23 @@ use vars qw(*F);
 
 our ($path, @files, $testcount);
 
+sub reform
+{
+    my $raw = shift;
+    if ($raw =~ /<![[]CDATA/) {
+	return $raw;
+    }
+
+    my $out = '';
+    foreach (split /\n/, $raw) {
+	$_ =~ s/^\s+//;
+	$out .= $_;
+	$out .= "\n";
+    }
+
+    return $out;
+}
+
 BEGIN
 {
     $path = "testdata/roundup";
@@ -26,17 +43,17 @@ while ($i < $testcount) {
     my $a = $parser->parse_file("$path/$n" . "a.xml");
 
     open(F, "$path/$n" . "b.xml");
-    my $serb = join '', <F>;
+    my $serb = reform(join '', <F>);
     my $b = $parser->parse_string($serb);
 
     open(F, "$path/$n" . "d.xml");
-    my $serd = join '', <F>;
+    my $serd = reform(join '', <F>);
 
     my $diff = make_diff($a, $b);
-    is($diff->toString(1), $serd, "diff $n?.xml");
+    is(reform($diff->toString(1)), $serd, "diff $n?.xml");
 
     my $merge = merge_diff($a, $diff);
-    is($merge->toString(1), $serb, "merge $n?.xml");
+    is(reform($merge->toString(1)), $serb, "merge $n?.xml");
 
     ++$i;
 }

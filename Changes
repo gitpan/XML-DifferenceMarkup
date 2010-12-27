@@ -45,3 +45,7 @@ Algorithm::Diff 1.15)
 
 1.02  Sat Jan  5 12:10:37 2008
 	- stricter checks for required libraries
+
+1.03  Mon Dec 27 16:18:35 UTC 2010
+	- ignoring more whitespace
+
