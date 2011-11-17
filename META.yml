@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               XML-DifferenceMarkup
-version:            1.03
+version:            1.04
 abstract:           XML diff and merge
 author:
     - Vaclav Barta <vbar@comp.cz>
@@ -11,7 +11,7 @@ configure_requires:
 build_requires:
     ExtUtils::MakeMaker:  0
 requires:
-    XML::LibXML:  1.58
+    XML::LibXML:  1.70
 no_index:
     directory:
         - t

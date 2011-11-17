@@ -49,3 +49,6 @@ Algorithm::Diff 1.15)
 1.03  Mon Dec 27 16:18:35 UTC 2010
 	- ignoring more whitespace
 
+1.04  Thu Nov 17 08:06:07 UTC 2011
+	- requiring newer XML::LibXML
+	- tests not loading external DTDs

@@ -27,8 +27,7 @@ BEGIN
 
 use Test::More tests => $testcount;
 
-my $parser = XML::LibXML->new();
-$parser->keep_blanks(0);
+my $parser = XML::LibXML->new(keep_blanks => 0, load_ext_dtd => 0);
 
 my $i = 0;
 while ($i < $testcount) {

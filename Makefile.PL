@@ -131,7 +131,7 @@ WriteMakefile(
 	      NAME => 'XML::DifferenceMarkup',
 	      VERSION_FROM => 'lib/XML/DifferenceMarkup.pm', # finds $VERSION
 	      PREREQ_PM => {
-			    'XML::LibXML'   => '1.58',
+			    'XML::LibXML'   => '1.70',
 			   },
 	      ABSTRACT_FROM  => 'lib/XML/DifferenceMarkup.pm', # retrieve abstract from module
 	      AUTHOR => 'Vaclav Barta <vbar@comp.cz>',

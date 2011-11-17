@@ -18,7 +18,7 @@ our %EXPORT_TAGS = ( 'all' => [ qw(
 
 our @EXPORT_OK = ( @{ $EXPORT_TAGS{'all'} } );
 
-our $VERSION = '1.03';
+our $VERSION = '1.04';
 
 require XSLoader;
 XSLoader::load('XML::DifferenceMarkup', $VERSION);
@@ -49,9 +49,9 @@ XML::DifferenceMarkup - XML diff and merge
 =head1 SYNOPSIS
 
  use XML::DifferenceMarkup qw(make_diff);
+ use XML::LibXML;
 
- $parser = XML::LibXML->new();
- $parser->keep_blanks(0);
+ $parser = XML::LibXML->new(keep_blanks => 0, load_ext_dtd => 0);
  $d1 = $parser->parse_file($fname1);
  $d2 = $parser->parse_file($fname2);
 

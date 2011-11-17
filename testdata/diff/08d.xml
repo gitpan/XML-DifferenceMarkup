@@ -4,6 +4,6 @@
     <root/>
   </dm:delete>
   <dm:insert>
-    <html xmlns="http://www.w3.org/1999/xhtml"/>
+    <html/>
   </dm:insert>
 </dm:diff>
