@@ -169,3 +169,4 @@ testdata/roundup/23a.xml
 testdata/roundup/23b.xml
 testdata/roundup/23d.xml
 META.yml                                 Module meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

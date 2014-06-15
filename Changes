@@ -52,3 +52,8 @@ Algorithm::Diff 1.15)
 1.04  Thu Nov 17 08:06:07 UTC 2011
 	- requiring newer XML::LibXML
 	- tests not loading external DTDs
+
+1.05  Sun Jun 15 06:51:36 UTC 2014
+	- upgraded LibXML adapter to files from XML-LibXML-2.0116
+	(lightly edited to compile as C++)
+

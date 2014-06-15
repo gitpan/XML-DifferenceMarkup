@@ -50,7 +50,7 @@ _make_diff(de1, de2)
 	{
 		std::string msg("XML::DifferenceMarkup diff: ");
 		msg += x;
-		croak(msg.c_str());
+		croak("%s", msg.c_str());
 	}
 
 	RETVAL = PmmNodeToSv(reinterpret_cast<xmlNodePtr>(rv), 0);
@@ -83,7 +83,7 @@ _merge_diff(src_doc, diff_elem)
 	{
 		std::string msg("XML::DifferenceMarkup merge: ");
 		msg += x;
-		croak(msg.c_str());
+		croak("%s", msg.c_str());
 	}
 
 	RETVAL = PmmNodeToSv(reinterpret_cast<xmlNodePtr>(rv), 0);

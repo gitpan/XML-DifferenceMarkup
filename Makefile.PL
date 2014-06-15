@@ -68,6 +68,8 @@ OPT
 
 # libdiffmark, not expected to work on Windows
 
+$config{LIBS} = '-L/usr/local/lib ' . $config{LIBS};
+
 if ($config{LIBS} !~ /\-ldiffmark\b/) {
     $config{LIBS} .= ' -ldiffmark';
 }

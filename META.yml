@@ -1,22 +1,22 @@
---- #YAML:1.0
-name:               XML-DifferenceMarkup
-version:            1.04
-abstract:           XML diff and merge
+---
+abstract: 'XML diff and merge'
 author:
-    - Vaclav Barta <vbar@comp.cz>
-license:            unknown
-distribution_type:  module
-configure_requires:
-    ExtUtils::MakeMaker:  0
+  - 'Vaclav Barta <vbar@comp.cz>'
 build_requires:
-    ExtUtils::MakeMaker:  0
-requires:
-    XML::LibXML:  1.70
-no_index:
-    directory:
-        - t
-        - inc
-generated_by:       ExtUtils::MakeMaker version 6.56
+  ExtUtils::MakeMaker: 0
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 1
+generated_by: 'ExtUtils::MakeMaker version 6.64, CPAN::Meta::Converter version 2.120921'
+license: unknown
 meta-spec:
-    url:      http://module-build.sourceforge.net/META-spec-v1.4.html
-    version:  1.4
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: XML-DifferenceMarkup
+no_index:
+  directory:
+    - t
+    - inc
+requires:
+  XML::LibXML: 1.70
+version: 1.05
